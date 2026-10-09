@@ -1,0 +1,8 @@
+import { categories, customer, orders, products } from '@/data/mock';
+import type { Address, ApiResponse, Category, Customer, Order, Product } from '@/types';
+export const API_BASE_URL=process.env.NEXT_PUBLIC_API_BASE_URL??'';
+export const productService={async list():Promise<ApiResponse<Product[]>>{return{data:products}},async getById(id:string):Promise<ApiResponse<Product|undefined>>{return{data:products.find(p=>p.id===id)}},async search(query:string,category?:string,sort='featured'):Promise<ApiResponse<Product[]>>{const rows=products.filter(p=>(!category||p.category===category)&&(!query||p.name.toLowerCase().includes(query.toLowerCase())));if(sort==='price-low')rows.sort((a,b)=>a.price-b.price);if(sort==='price-high')rows.sort((a,b)=>b.price-a.price);return{data:rows}}};
+export const categoryService={async list():Promise<ApiResponse<Category[]>>{return{data:categories}}};
+export const customerService={async getProfile():Promise<ApiResponse<Customer>>{return{data:customer}},async updateProfile(input:Customer):Promise<ApiResponse<Customer>>{return{data:input}},async saveAddress(input:Address):Promise<ApiResponse<Address>>{return{data:input}}};
+export const orderService={async list():Promise<ApiResponse<Order[]>>{return{data:orders}},async getById(id:string):Promise<ApiResponse<Order|undefined>>{return{data:orders.find(o=>o.id===id)}},async checkout(items:{product:Product;quantity:number}[],shipping:Address):Promise<ApiResponse<Order>>{return{data:{id:`ORD-${Date.now()}`,date:new Date().toISOString().slice(0,10),items,total:items.reduce((s,i)=>s+i.product.price*i.quantity,0)+12,paymentStatus:'Paid',status:'Processing',address:shipping}}}};
+export const cartService={async getItems(){return{data:[] as {product:Product;quantity:number}[]}}};

@@ -1,0 +1,7 @@
+'use client';
+import {createContext,useContext,useEffect,useMemo,useState} from 'react';
+import type {CartItem,Product} from '@/types';
+type Store={cart:CartItem[];wishlist:string[];add:(p:Product)=>void;remove:(id:string)=>void;qty:(id:string,n:number)=>void;toggle:(id:string)=>void;clear:()=>void};
+const C=createContext<Store|null>(null);
+export function StoreProvider({children}:{children:React.ReactNode}){const[cart,setCart]=useState<CartItem[]>([]);const[wishlist,setWishlist]=useState<string[]>([]);const[ready,setReady]=useState(false);useEffect(()=>{queueMicrotask(()=>{try{setCart(JSON.parse(localStorage.getItem('atelier-cart')||'[]'));setWishlist(JSON.parse(localStorage.getItem('atelier-wishlist')||'[]'))}catch{}setReady(true)})},[]);useEffect(()=>{if(ready){localStorage.setItem('atelier-cart',JSON.stringify(cart));localStorage.setItem('atelier-wishlist',JSON.stringify(wishlist))}},[cart,wishlist,ready]);const value=useMemo<Store>(()=>({cart,wishlist,add:p=>setCart(c=>c.some(x=>x.product.id===p.id)?c.map(x=>x.product.id===p.id?{...x,quantity:x.quantity+1}:x):[...c,{product:p,quantity:1}]),remove:id=>setCart(c=>c.filter(x=>x.product.id!==id)),qty:(id,n)=>setCart(c=>c.map(x=>x.product.id===id?{...x,quantity:Math.max(1,n)}:x)),toggle:id=>setWishlist(w=>w.includes(id)?w.filter(x=>x!==id):[...w,id]),clear:()=>setCart([])}),[cart,wishlist]);return <C.Provider value={value}>{children}</C.Provider>}
+export function useStore(){const c=useContext(C);if(!c)throw Error('StoreProvider missing');return c}
