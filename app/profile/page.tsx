@@ -1,2 +1,30 @@
-'use client';import {useState} from 'react';import {customerService} from '@/lib/services';import {customer,address} from '@/data/mock';import Link from 'next/link';
-export default function Profile(){const[name,setName]=useState(customer.name),[email,setEmail]=useState(customer.email),[saved,setSaved]=useState(false),[editingAddress,setEditingAddress]=useState(false),[addressLine,setAddressLine]=useState(address.line1),[addressCity,setAddressCity]=useState(address.city),[addressSaved,setAddressSaved]=useState(false);return <div className="wrap account-page"><span className="eyebrow">A PLACE OF YOUR OWN</span><h1>Your account</h1><div className="profile-grid"><aside className="profile-nav"><b>Account overview</b><Link href="/orders">Order history ↗</Link><Link href="/wishlist">Saved pieces ↗</Link></aside><div className="profile-content"><section><div className="profile-section-heading"><div><span className="eyebrow">YOUR DETAILS</span><h2>Personal information</h2></div></div><form className="form-grid" onSubmit={async e=>{e.preventDefault();await customerService.updateProfile({...customer,name,email});setSaved(true);setTimeout(()=>setSaved(false),2200)}}><label>Full name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Email address<input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Phone number<input defaultValue={customer.phone}/></label><div className="form-action"><button className="button button-dark">{saved?'Changes saved ✓':'Save changes'}</button></div></form></section><section><div className="profile-section-heading"><div><span className="eyebrow">WHERE TO FIND YOU</span><h2>Your addresses</h2></div><button className="text-link" onClick={()=>setEditingAddress(v=>!v)}>＋ Add address</button></div><div className="address-card"><span className="address-label">{address.label} · DEFAULT</span><p>{address.name}<br/>{addressLine}<br/>{addressCity}<br/>{address.country}</p><button className="text-link" onClick={()=>setEditingAddress(v=>!v)}>{editingAddress?'Close editor':'Edit address'}</button></div>{editingAddress&&<form className="form-grid address-edit" onSubmit={async e=>{e.preventDefault();await customerService.saveAddress({...address,line1:addressLine,city:addressCity});setAddressSaved(true);setEditingAddress(false)}}><label>Street address<input value={addressLine} onChange={e=>setAddressLine(e.target.value)}/></label><label>City and postal code<input value={addressCity} onChange={e=>setAddressCity(e.target.value)}/></label><div className="form-action"><button className="button button-dark">{addressSaved?'Address saved ✓':'Save address'}</button></div></form>}</section></div></div></div>}
+'use client';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { authService, clearAccessToken, getAccessToken } from '@/lib/services';
+
+export default function Profile() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [token, setToken] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => setToken(getAccessToken()), []);
+  async function login(e: React.FormEvent) {
+    e.preventDefault(); setError(''); setBusy(true);
+    try { await authService.login(email, password); setToken(getAccessToken()); }
+    catch (err) { setError(err instanceof Error ? err.message : 'Could not sign in.'); }
+    finally { setBusy(false); }
+  }
+  async function logout() { try { await authService.logout(); } catch {} clearAccessToken(); setToken(''); }
+  return <div className="wrap account-page"><span className="eyebrow">A PLACE OF YOUR OWN</span><h1>Your account</h1>
+    <div className="profile-grid"><aside className="profile-nav"><b>Account overview</b><Link href="/orders">Order history ↗</Link><Link href="/wishlist">Saved pieces ↗</Link></aside>
+    <div className="profile-content"><section><span className="eyebrow">YOUR DETAILS</span><h2>{token ? 'You are signed in' : 'Sign in to your account'}</h2>
+      {token ? <><p>Your session is ready for catalog and order requests.</p><button className="button button-dark" onClick={logout}>Sign out</button></> : <form className="form-grid" onSubmit={login}>
+        <label>Email address<input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
+        <label>Password<input required type="password" autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/></label>
+        {error && <p role="alert">{error}</p>}<div className="form-action"><button className="button button-dark" disabled={busy}>{busy?'Signing in…':'Sign in'}</button></div>
+      </form>}
+      <p>Profile editing, address book, and customer registration are not available in the connected API yet.</p>
+    </section></div></div></div>;
+}
